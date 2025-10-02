@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+torch
+transformers
+pandas
+python-multipart
+flask
+wordcloud
+matplotlib
