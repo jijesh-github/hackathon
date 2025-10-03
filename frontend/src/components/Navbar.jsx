@@ -67,6 +67,16 @@ const Navbar = () => {
                 <span>Admin</span>
               </div>
             </Link>
+
+            <Link
+              to="/dashboard"
+              className={isActive('/dashboard') ? 'navbar-link-active' : 'navbar-link'}
+            >
+              <div className="flex items-center space-x-2">
+                <MessageSquare className="h-4 w-4" />
+                <span>Dashboard</span>
+              </div>
+            </Link>
           </div>
 
           {/* Mobile menu button */}

@@ -688,6 +688,71 @@ async def get_frontend():
     """
 
 # ================================
+# DASHBOARD API ENDPOINTS
+# ================================
+
+@app.get("/api/sentiment-counts")
+async def get_sentiment_counts(db: Session = Depends(get_db)):
+    """Get sentiment analysis counts from all feedback"""
+    try:
+        feedbacks = db.query(FeedbackModel).all()
+        
+        if not feedbacks:
+            return {"positive": 0, "negative": 0, "neutral": 0}
+        
+        # Analyze sentiment for each feedback
+        sentiment_counts = {"positive": 0, "negative": 0, "neutral": 0}
+        
+        for feedback in feedbacks:
+            sentiment, _ = analyze_sentiment(feedback.content)
+            if sentiment in sentiment_counts:
+                sentiment_counts[sentiment] += 1
+        
+        return sentiment_counts
+    except Exception as e:
+        logger.error(f"Error getting sentiment counts: {e}")
+        return {"positive": 0, "negative": 0, "neutral": 0}
+
+@app.get("/api/summarized-feedbacks")
+async def get_summarized_feedbacks(db: Session = Depends(get_db)):
+    """Get summarized feedbacks with their sentiment"""
+    try:
+        feedbacks = db.query(FeedbackModel).limit(50).all()  # Limit to 50 for performance
+        
+        results = []
+        for feedback in feedbacks:
+            sentiment, _ = analyze_sentiment(feedback.content)
+            summary = summarize_text(feedback.content)
+            
+            results.append({
+                "text": summary,
+                "sentiment": sentiment.capitalize()
+            })
+        
+        return results
+    except Exception as e:
+        logger.error(f"Error getting summarized feedbacks: {e}")
+        return []
+
+@app.get("/api/wordcloud")
+async def get_wordcloud(db: Session = Depends(get_db)):
+    """Generate word cloud from all feedback content"""
+    try:
+        feedbacks = db.query(FeedbackModel).all()
+        
+        if not feedbacks:
+            return {"base64": None}
+        
+        # Combine all feedback content
+        all_text = " ".join([f.content for f in feedbacks])
+        word_cloud_base64 = generate_wordcloud(all_text)
+        
+        return {"base64": word_cloud_base64}
+    except Exception as e:
+        logger.error(f"Error generating wordcloud: {e}")
+        return {"base64": None}
+
+# ================================
 # SERVER INFO
 # ================================
 

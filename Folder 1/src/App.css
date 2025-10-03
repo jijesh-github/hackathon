@@ -1,0 +1,26 @@
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --muted: #6b7280;
+}
+
+* { box-sizing: border-box; }
+body, html, #root { height: 100%; margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: var(--bg); }
+
+.app-root { padding: 24px; }
+.dashboard-container h1 { text-align: center; margin-bottom: 18px; }
+.cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.card { background: var(--card); border-radius: 12px; box-shadow: 0 6px 20px rgba(17,24,39,0.06); padding: 18px; min-width: 280px; }
+.chart-card { flex: 1 1 340px; max-width: 420px; }
+.list-card { flex: 2 1 520px; max-height: 520px; overflow: hidden; }
+.wordcloud-card { flex: 1 1 340px; max-width: 420px; display: flex; flex-direction: column; align-items: center; }
+.loading { color: var(--muted); }
+.error { color: #b91c1c; }
+.table-scroll { max-height: 420px; overflow-y: auto; }
+.feedback-table { width: 100%; border-collapse: collapse; }
+.feedback-table th { position: sticky; top: 0; background: var(--card); text-align: left; border-bottom: 1px solid #e6e6e6; padding: 8px; }
+.feedback-table td { padding: 10px 8px; border-bottom: 1px dashed #efefef; vertical-align: top; }
+.sentiment.positive { color: #16a34a; font-weight: 600; }
+.sentiment.negative { color: #dc2626; font-weight: 600; }
+.sentiment.neutral { color: #6b7280; font-weight: 600; }
+.wordcloud-img { max-width: 100%; max-height: 320px; border-radius: 8px; border: 1px solid #f1f1f1; }
