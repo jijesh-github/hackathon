@@ -46,11 +46,17 @@ const FeedbackPage = () => {
       });
 
       if (response.success) {
+        // Non-toxic content processed successfully
         setResult(response.data);
         setFeedbackText('');
         setSelectedAmendment('');
       } else {
-        setError(response.message || 'Failed to submit feedback.');
+        // Check if it's a toxicity issue
+        if (response.data && response.data.toxic) {
+          setError(`🚫 ${response.message} (Toxicity Score: ${(response.data.toxic_score * 100).toFixed(1)}%)`);
+        } else {
+          setError(response.message || 'Failed to submit feedback.');
+        }
       }
     } catch (err) {
       setError('Failed to submit feedback. Please try again later.');
@@ -307,6 +313,17 @@ const FeedbackPage = () => {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Safety Check Info */}
+            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center text-green-800">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <span className="font-medium">Content Safety Verified</span>
+              </div>
+              <p className="text-sm text-green-700 mt-1">
+                Your feedback passed our toxicity screening (Safety Score: {((1 - result.toxic_score) * 100).toFixed(1)}%) and has been processed successfully.
+              </p>
             </div>
 
             <div className="mt-4 text-sm text-government-500">

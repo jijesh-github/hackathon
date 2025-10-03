@@ -7,3 +7,4 @@ python-multipart
 flask
 wordcloud
 matplotlib
+detoxify

@@ -45,6 +45,13 @@ try:
 except ImportError:
     WORDCLOUD_AVAILABLE = False
 
+# Try to import detoxify for toxicity detection
+try:
+    from detoxify import Detoxify
+    DETOXIFY_AVAILABLE = True
+except ImportError:
+    DETOXIFY_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -221,6 +228,35 @@ def generate_wordcloud(text: str) -> str:
         logger.error(f"Word cloud generation error: {e}")
         return ""
 
+def detect_toxicity(text: str) -> tuple[bool, float]:
+    """
+    Detect toxicity in text using Detoxify
+    Returns (is_toxic, max_score)
+    """
+    if not DETOXIFY_AVAILABLE:
+        logger.warning("Detoxify not available, skipping toxicity detection")
+        return False, 0.0
+    
+    try:
+        # Initialize detoxify model
+        detoxify = Detoxify('original')
+        
+        # Get toxicity predictions
+        toxicity_scores = detoxify.predict(text)
+        
+        # Find maximum toxicity score across all categories
+        max_score = max(toxicity_scores.values())
+        
+        # Check if toxic (threshold > 0.6)
+        is_toxic = max_score > 0.6
+        
+        logger.info(f"🛡️ Toxicity check: max_score={max_score:.3f}, toxic={is_toxic}")
+        return is_toxic, max_score
+        
+    except Exception as e:
+        logger.error(f"Toxicity detection error: {e}")
+        return False, 0.0
+
 # ================================
 # API ROUTES - AMENDMENTS
 # ================================
@@ -278,7 +314,7 @@ async def get_amendments(db: Session = Depends(get_db)):
 @app.post("/feedback", response_model=APIResponse)
 async def submit_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     """
-    Submit feedback for an amendment with ML analysis
+    Submit feedback for an amendment with toxicity detection and ML analysis
     """
     try:
         # Verify amendment exists
@@ -286,13 +322,29 @@ async def submit_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db
         if not amendment:
             raise HTTPException(status_code=404, detail="Amendment not found")
         
-        # Perform ML analysis
-        logger.info(f"🧠 Analyzing feedback for amendment {feedback.amendment_id}...")
+        # Step 1: Run toxicity detection first
+        logger.info(f"🛡️ Checking toxicity for feedback on amendment {feedback.amendment_id}...")
+        is_toxic, toxic_score = detect_toxicity(feedback.original_text)
+        
+        if is_toxic:
+            # Toxic comment → don't process further
+            logger.warning(f"🚫 Toxic content detected: score={toxic_score:.3f}")
+            return APIResponse(
+                success=False,
+                message="The comment contains toxicity",
+                data={
+                    "toxic": True,
+                    "toxic_score": toxic_score
+                }
+            )
+        
+        # Step 2: Safe comment → run sentiment + summary analysis
+        logger.info(f"✅ Content is safe, proceeding with ML analysis...")
         
         sentiment, confidence = analyze_sentiment(feedback.original_text)
         summary = summarize_text(feedback.original_text)
         
-        # Create feedback record
+        # Step 3: Save feedback to database
         db_feedback = FeedbackModel(
             amendment_id=feedback.amendment_id,
             original_text=feedback.original_text,
@@ -307,14 +359,17 @@ async def submit_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db
         
         logger.info(f"✅ Feedback saved: ID={db_feedback.id}, Sentiment={sentiment}")
         
+        # Step 4: Return success response
         return APIResponse(
             success=True,
-            message="Feedback submitted and analyzed successfully",
+            message="Feedback submitted successfully",
             data={
+                "toxic": False,
                 "feedback_id": db_feedback.id,
                 "sentiment": sentiment,
                 "confidence": confidence,
-                "summary": summary
+                "summary": summary,
+                "toxic_score": toxic_score
             }
         )
         
